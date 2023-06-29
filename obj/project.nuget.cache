@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "bwHMhxQgbY/lNYtd4j4DWii79SjR+Qv9kdQqCjJur3lr8qjvYvZ/cAe8Tqk/7LPyWM5ny/1od93lSBBwvPQsDw==",
+  "dgSpecHash": "Csif9sf8XJVje5OJo/+W90iom8Q5GLkPu6ziomBVJMn11WzOhBnkkjK3YEYND6fcT7et60eaIqF+IXnsMxyPvg==",
   "success": true,
-  "projectFilePath": "/home/tobias/Downloads/INFOGR2023TemplateP2/INFOGR2023TemplateP2.csproj",
+  "projectFilePath": "/home/tobias/projects/uni/rasterizer/INFOGR2023TemplateP2.csproj",
   "expectedPackageFiles": [
     "/home/tobias/.nuget/packages/microsoft.netcore.platforms/5.0.0/microsoft.netcore.platforms.5.0.0.nupkg.sha512",
     "/home/tobias/.nuget/packages/opentk/4.7.1/opentk.4.7.1.nupkg.sha512",

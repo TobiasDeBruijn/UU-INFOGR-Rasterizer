@@ -29,13 +29,11 @@ namespace Template
         readonly List<Vector2> texCoords = new();
         List<Mesh.ObjVertex> objVertices = new();
         List<Mesh.ObjTriangle> objTriangles = new();
-        List<Mesh.ObjQuad> objQuads = new();
 
         void Load(Mesh mesh, TextReader textReader)
         {
             objVertices = new List<Mesh.ObjVertex>();
             objTriangles = new List<Mesh.ObjTriangle>();
-            objQuads = new List<Mesh.ObjQuad>();
             string? line;
             while ((line = textReader.ReadLine()) != null)
             {
@@ -105,7 +103,6 @@ namespace Template
             texCoords.Clear();
             objVertices.Clear();
             objTriangles.Clear();
-            objQuads.Clear();
         }
 
         readonly char[] faceParameterSplitter = new char[] { '/' };

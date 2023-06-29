@@ -5,40 +5,13 @@ using OpenTK.Mathematics;
 namespace Template;
 
 public struct Material {
-    public Vector3 AmbientLightColor;
-    public float AmbientLightEmittance;
-    public Vector3 DiffuseColor;
-
-    public Material(Vector3 ambientLightColor, float ambientLightEmittance, Vector3 diffuseColor) {
-        AmbientLightColor = ambientLightColor;
-        AmbientLightEmittance = ambientLightEmittance;
-        DiffuseColor = diffuseColor;
-    }
+    public Vector3 Ambient;
+    public Vector3 Diffuse;
+    public Vector3 Specular;
 }
 
-public struct LightSource {
-    public Vector3 LightColor;
-    public Vector3 LightPosition;
-    public readonly float LightEmittance;
-
-    public LightSource(Vector3 lightColor, Vector3 lightPosition, float lightEmittance) {
-        LightColor = lightColor;
-        LightPosition = lightPosition;
-        LightEmittance = lightEmittance;
-    }
-}
-
-public struct RenderInformation {
-    public Material Material;
-    public LightSource[] LightSources;
-
-    public RenderInformation(Material material, LightSource[] lightSources) {
-        Material = material;
-        if (lightSources.Length > 4) {
-            throw new ArgumentOutOfRangeException(nameof(lightSources), "More than 4 light sources provided");
-        }
-        LightSources = lightSources;
-    }
+public struct Light {
+    public Vector3 Position;
 }
 
 public class Mesh {
@@ -76,78 +49,57 @@ public class Mesh {
     }
 
     // render the mesh using the supplied shader and matrix
-    public void Render(Shader shader, Matrix4 objectToScreen, Matrix4 objectToWorld, Texture texture, RenderInformation renderInformation) {
+    public void Render(Shader shader, Vector3 viewForward, Matrix4 model, Matrix4 projection, Matrix4 view, Texture diffuseTexture, Material material, List<Light> lights) {
         // on first run, prepare buffers
         Prepare();
 
         // enable shader
         GL.UseProgram(shader.ProgramId);
 
-        // enable texture
-        int textureLocation =
-            GL.GetUniformLocation(shader.ProgramId, "diffuseTexture"); // get the location of the shader variable
-        const int textureUnit = 0; // choose a texture unit
-        GL.Uniform1(textureLocation, textureUnit); // set the value of the shader variable to that texture unit
-        GL.ActiveTexture(TextureUnit.Texture0 + textureUnit); // make that the active texture unit
-        GL.BindTexture(TextureTarget.Texture2D,
-            texture.id); // bind the texture as a 2D image texture to the active texture unit
-
-        // pass transforms to vertex shader
-        GL.UniformMatrix4(shader.ObjectToScreenHandle, false, ref objectToScreen);
-        GL.UniformMatrix4(shader.ObjectToWorldHandle, false, ref objectToWorld);
+        // Set vertex shader variables
+        GL.UniformMatrix4(shader.ProjectionMatrixHandle, false, ref projection);
+        GL.UniformMatrix4(shader.ViewMatrixHandle, false, ref view);
+        GL.UniformMatrix4(shader.ModelMatrixHandle, false, ref model);
         
-        BindMaterial(shader, renderInformation.Material);
-
-        for (int index = 0; index < renderInformation.LightSources.Length; index++) {
-            BindLightSource(shader, index, renderInformation.LightSources[index]);
-        }
-
-        SetLightSourceCount(shader, renderInformation.LightSources.Length);
-        
-        // enable position, normal and uv attribute arrays corresponding to the shader "in" variables
         GL.EnableVertexAttribArray(shader.VertexPositionObjectHandle);
         GL.EnableVertexAttribArray(shader.VertexNormalObjectHandle);
         GL.EnableVertexAttribArray(shader.VertexUvHandle);
-
-        // bind vertex data
+        
         GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferId);
-
-        // link vertex attributes to shader parameters 
+        
         GL.VertexAttribPointer(shader.VertexUvHandle, 2, VertexAttribPointerType.Float, false, 32, 0);
         GL.VertexAttribPointer(shader.VertexNormalObjectHandle, 3, VertexAttribPointerType.Float, true, 32, 2 * 4);
         GL.VertexAttribPointer(shader.VertexPositionObjectHandle, 3, VertexAttribPointerType.Float, false, 32, 5 * 4);
 
-        // bind triangle index data and render
-        if (Triangles != null && Triangles.Length > 0) {
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _triangleBufferId);
-            GL.DrawArrays(PrimitiveType.Triangles, 0, Triangles.Length * 3);
-        }
+        GL.BindBuffer(BufferTarget.ElementArrayBuffer, _triangleBufferId);
+        
+        // Set fragment shader variables
+        GL.Uniform1(shader.TextureDiffuse1Handle, 0);
+        GL.ActiveTexture(TextureUnit.Texture0);
+        GL.BindTexture(TextureTarget.Texture2D, diffuseTexture.id);
+        
+        // GL.Uniform1(shader.TextureSpecular1Handle, 1);
+        // GL.ActiveTexture(TextureUnit.Texture1);
+        // GL.BindTexture(TextureTarget.Texture2D, diffuseTexture.id);
 
-        string infoLog = GL.GetProgramInfoLog(shader.ProgramId);
-        if (infoLog.Length > 0) {
-            // Console.WriteLine(infoLog);
+        for (int idx = 0; idx < lights.Count; idx++) {
+            GL.Uniform3(shader.LightPositionHandle(idx), lights[idx].Position);
         }
+        
+        GL.Uniform1(shader.LightCountHandle, lights.Count);
+        
+        GL.Uniform3(shader.MaterialDiffuseHandle, material.Diffuse);
+        GL.Uniform3(shader.MaterialAmbientHandle, material.Ambient);
+        GL.Uniform3(shader.MaterialSpecularHandle, material.Specular);
+        
+        GL.Uniform3(shader.ViewForwardHandle, viewForward);
+        
+        GL.DrawArrays(PrimitiveType.Triangles, 0, Triangles!.Length * 3);
         
         // restore previous OpenGL state
         GL.UseProgram(0);
     }
 
-    private static void BindMaterial(Shader shader, Material material) {
-        GL.Uniform3(GL.GetUniformLocation(shader.ProgramId, "material.ambientLightColor"), material.AmbientLightColor);
-        GL.Uniform1(GL.GetUniformLocation(shader.ProgramId, "material.ambientLightEmittance"), material.AmbientLightEmittance);
-        GL.Uniform3(GL.GetUniformLocation(shader.ProgramId, "material.diffuseColor"), material.DiffuseColor);
-    }
-
-    private static void BindLightSource(Shader shader, int index, LightSource lightSource) {
-        GL.Uniform3(GL.GetUniformLocation(shader.ProgramId, $"lightSources[{index}].lightColor"), lightSource.LightColor);
-        GL.Uniform3(GL.GetUniformLocation(shader.ProgramId, $"lightSources[{index}].lightPosition"), lightSource.LightPosition);
-        GL.Uniform1(GL.GetUniformLocation(shader.ProgramId, $"lightSources[{index}].lightEmittance"), lightSource.LightEmittance);
-    }
-
-    private static void SetLightSourceCount(Shader shader, int lightSourceCount) {
-        GL.Uniform1(GL.GetUniformLocation(shader.ProgramId, "lightSourceCount"), lightSourceCount);
-    }
-    
     // layout of a single vertex
     [StructLayout(LayoutKind.Sequential)]
     public struct ObjVertex {
@@ -160,11 +112,5 @@ public class Mesh {
     [StructLayout(LayoutKind.Sequential)]
     public struct ObjTriangle {
         public int Index0, Index1, Index2;
-    }
-
-    // layout of a single quad
-    [StructLayout(LayoutKind.Sequential)]
-    public struct ObjQuad {
-        public int Index0, Index1, Index2, Index3;
     }
 }

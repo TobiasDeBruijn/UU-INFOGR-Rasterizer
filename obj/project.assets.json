@@ -532,11 +532,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/tobias/Downloads/INFOGR2023TemplateP2/INFOGR2023TemplateP2.csproj",
+      "projectUniqueName": "/home/tobias/projects/uni/rasterizer/INFOGR2023TemplateP2.csproj",
       "projectName": "INFOGR2023TemplateP2",
-      "projectPath": "/home/tobias/Downloads/INFOGR2023TemplateP2/INFOGR2023TemplateP2.csproj",
+      "projectPath": "/home/tobias/projects/uni/rasterizer/INFOGR2023TemplateP2.csproj",
       "packagesPath": "/home/tobias/.nuget/packages/",
-      "outputPath": "/home/tobias/Downloads/INFOGR2023TemplateP2/obj/",
+      "outputPath": "/home/tobias/projects/uni/rasterizer/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/tobias/.nuget/NuGet/NuGet.Config"
@@ -578,8 +578,7 @@
           "net47",
           "net471",
           "net472",
-          "net48",
-          "net481"
+          "net48"
         ],
         "assetTargetFallback": true,
         "warn": true,
@@ -588,7 +587,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/6.0.408/RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/6.0.119/RuntimeIdentifierGraph.json"
       }
     }
   }

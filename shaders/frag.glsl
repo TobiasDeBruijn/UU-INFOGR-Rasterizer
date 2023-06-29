@@ -1,66 +1,59 @@
-﻿#version 330
+﻿#version 440 core
+
+struct Light {
+    vec3 position;
+};
 
 struct Material {
-    vec3 ambientLightColor;
-    float ambientLightEmittance;
-    vec3 diffuseColor;
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
 };
 
-struct LightSource {
-    vec3 lightColor;
-    vec3 lightPosition;
-    float lightEmittance; 
-};
+in vec3 FragPos;
+in vec3 Color;
+in vec3 Normal;
+in vec2 TexCoords;
 
-// shader inputs
-in vec4 positionWorld;              // fragment position in World Space
-in vec4 normalWorld;                // fragment normal in World Space
-in vec2 uv;                         // fragment uv texture coordinates
-uniform sampler2D diffuseTexture;	// texture sampler
+uniform sampler2D texture_diffuse1;
+uniform sampler2D texture_specular1;
 
+uniform Light[5] lights;
+uniform int lightCount;
 uniform Material material;
 
-uniform LightSource[4] lightSources;
-uniform int lightSourceCount;
+uniform vec3 viewPos;
+uniform vec3 viewForward;
 
-// shader output
-out vec4 outputColor;
+out vec4 finalColor;
 
-vec3 computePhong() {
-    vec3 l = vec3(5, -3, 0) - positionWorld.xyz;
-    float attenuation = 1.0 / dot(l, l);
-    float ndotl = max(0.0, dot(normalize(normalWorld.xyz), normalize(l)));
-    vec3 diffuseColor = texture(diffuseTexture, uv).rgb;
-    return vec3(1, 0, 0) * diffuseColor * attenuation * ndotl;
+vec3 lightDirectionNormal(Light light) {
+    return normalize(light.position - FragPos);
 }
 
-// fragment shader
-void main() {
-//    vec3 accum = vec3(0, 0, 0);
-//    for(int i = 0; i < lightSourceCount; i++) {
-//        LightSource l = lightSources[i];
-//        accum += PhongForLightSource(l);
-//    }
-//    
-//    vec3 light = computePhong();
-//    light += material.ambientLightColor * material.ambientLightEmittance;
-//    
-//    outputColor = vec4(
-//        light,
-//        1.0
-//    );
+vec3 diffuseLighting(Light light) {
+    float angle = dot(Normal, lightDirectionNormal(light));
+    vec3 diffuseColor = material.diffuse * max(0, angle);
+    return diffuseColor * texture(texture_diffuse1, TexCoords).rgb;
+}
 
-    vec3 lightPosition = vec3(3, -4, 0);
-    vec3 lightColor = vec3(0, 1, 0);
+vec3 specularHighlight(Light light) {
+    vec3 ldn = lightDirectionNormal(light);
+    vec3 specularDirection = ldn - 2 * dot(ldn, Normal) * Normal;
     
-    vec3 L = lightPosition - positionWorld.xyz;
-    // vector from surface to light, unnormalized!
-    float attenuation = 1.0 / dot(L, L);
-    // distance attenuation
-    float NdotL = max(0, dot(normalize(normalWorld.xyz), normalize(L)));
-    // incoming angle attenuation
-    vec3 diffuseColor = texture(diffuseTexture, uv).rgb;
-    // texture lookup
-    outputColor = vec4(lightColor * diffuseColor * attenuation * NdotL, 1.0);
-    outputColor += vec4(vec3(1, 1, 1) * 0.5, 1);
+    float specularity = dot(normalize(viewForward), normalize(specularDirection));
+    
+    return material.specular * specularity;
+}
+
+void main() {
+    vec3 ambient = material.ambient;
+    
+    vec3 color = vec3(0.0, 0.0, 0.0);
+    for(int i = 0; i < lightCount; i++) {
+        Light light = lights[i];
+        color += diffuseLighting(light) + specularHighlight(light);
+    }
+    
+    finalColor = vec4(color + material.ambient, 1.0);
 }
