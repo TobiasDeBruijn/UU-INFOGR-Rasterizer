@@ -8,6 +8,7 @@ struct Material {
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
+    float specularity;
 };
 
 in vec3 FragPos;
@@ -38,12 +39,19 @@ vec3 diffuseLighting(Light light) {
 }
 
 vec3 specularHighlight(Light light) {
-    vec3 ldn = lightDirectionNormal(light);
-    vec3 specularDirection = ldn - 2 * dot(ldn, Normal) * Normal;
+    if(material.specularity == 0.0) {
+        return vec3(0, 0, 0);
+    }
     
-    float specularity = dot(normalize(viewForward), normalize(specularDirection));
+    vec3 l = lightDirectionNormal(light);
+    vec3 r = l - 2 * dot(l, Normal) * Normal;
+    vec3 v = normalize(viewForward);
     
-    return material.specular * specularity;
+    float vr = dot(v, r);
+    float maxed = max(0.0, vr);
+    
+    float spec = pow(maxed, material.specularity);
+    return material.specular * spec;
 }
 
 void main() {

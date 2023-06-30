@@ -6,8 +6,9 @@ namespace Template;
 
 public struct Material {
     public Vector3 Ambient;
-    public Vector3 Diffuse;
+    public Vector3 DiffuseTint;
     public Vector3 Specular;
+    public float Specularity;
 }
 
 public struct Light {
@@ -21,7 +22,27 @@ public class Mesh {
     public ObjTriangle[]? Triangles; // triangles (3 indices into the vertices array)
     private int _vertexBufferId; // vertex buffer object (VBO) for vertex data
     private int _triangleBufferId; // element buffer object (EBO) for triangle vertex indices
+    
+    public Sphere GetBoundingSphere() {
+        Vector3 minAabb = new Vector3(float.MaxValue);
+        Vector3 maxAabb = new Vector3(float.MinValue);
+        
+        foreach (ObjVertex objVertex in Vertices!) {
+            minAabb.X = Math.Min(minAabb.X, objVertex.Vertex.X);
+            minAabb.Y = Math.Min(minAabb.Y, objVertex.Vertex.Y);
+            minAabb.Z = Math.Min(minAabb.Z, objVertex.Vertex.Z);
 
+            maxAabb.X = Math.Max(maxAabb.X, objVertex.Vertex.X);
+            maxAabb.Y = Math.Max(maxAabb.Y, objVertex.Vertex.Y);
+            maxAabb.Z = Math.Max(maxAabb.Z, objVertex.Vertex.Z);
+        }
+
+        return new Sphere(
+            (maxAabb + minAabb) * 0.5f,
+            (minAabb - maxAabb).Length
+        );
+    }
+    
     // constructor
     public Mesh(string filename) {
         _filename = filename;
@@ -88,9 +109,10 @@ public class Mesh {
         
         GL.Uniform1(shader.LightCountHandle, lights.Count);
         
-        GL.Uniform3(shader.MaterialDiffuseHandle, material.Diffuse);
+        GL.Uniform3(shader.MaterialDiffuseHandle, material.DiffuseTint);
         GL.Uniform3(shader.MaterialAmbientHandle, material.Ambient);
         GL.Uniform3(shader.MaterialSpecularHandle, material.Specular);
+        GL.Uniform1(shader.MaterialSpecularityHandle, material.Specularity);
         
         GL.Uniform3(shader.ViewForwardHandle, viewForward);
         

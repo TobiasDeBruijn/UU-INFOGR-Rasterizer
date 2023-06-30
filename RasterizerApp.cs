@@ -1,10 +1,7 @@
 using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using SixLabors.ImageSharp;
 
 namespace Template; 
 
@@ -20,63 +17,37 @@ internal class RasterizerApp {
     private RenderTarget? _target;                   // intermediate render target
     private ScreenQuad? _quad;                       // screen filling quad for post processing
     private const bool UseRenderTarget = false;      // required for post processing
-    
-    /// <summary>
-    /// Position of the camera
-    /// </summary>
-    private Vector3 _cameraPosition = new(0, 9f, 30f);
-    /// <summary>
-    /// Camera yaw in degrees.
-    /// </summary>
-    private float _cameraYaw = -90.0f;
-    /// <summary>
-    /// Camera pitch in degrees
-    /// </summary>
-    private float _cameraPitch;
+
+    private readonly Camera _camera = new(new Vector3(3f, 23f, 28f), -94.5f, -24.5f);
+    private Frustrum Frustrum => Frustrum.CreateForCamera(_camera, AspectRatio, MathHelper.DegreesToRadians(FieldOfView), DepthNear, DepthFar);
+
     /// <summary>
     /// Field of view in degrees
     /// </summary>
     private const float FieldOfView = 60;
+    
     /// <summary>
     /// Distance to the near clip plane
     /// </summary>
     private const float DepthNear = 0.1f;
+    
     /// <summary>
     /// Distance to the far clip plane
     /// </summary>
     private const float DepthFar = 1000f;
-    /// <summary>
-    /// The camera's forward looking vector.
-    /// </summary>
-    private Vector3 CameraForwardDirection => Vector3.Normalize(new Vector3(
-        (float) (Math.Cos(MathHelper.DegreesToRadians(_cameraYaw)) * Math.Cos(MathHelper.DegreesToRadians(_cameraPitch))),
-        (float) Math.Sin(MathHelper.DegreesToRadians(_cameraPitch)),
-        (float) (Math.Sin(MathHelper.DegreesToRadians(_cameraYaw)) * Math.Cos(MathHelper.DegreesToRadians(_cameraPitch)))
-    ));
-    /// <summary>
-    /// The camera's right vector
-    /// </summary>
-    private Vector3 CameraRightDirection => Vector3.Normalize(
-        Vector3.Cross(CameraForwardDirection, Vector3.UnitY)
-    );
-    /// <summary>
-    /// The camera's up vector
-    /// </summary>
-    private Vector3 CameraUpDirection => Vector3.Normalize(
-        Vector3.Cross(
-            CameraRightDirection, 
-            CameraForwardDirection
-        )
-    );
+   
     /// <summary>
     /// The view matrix.
     /// Transforms from world space to camera space.
     /// </summary>
-    private Matrix4 ViewMatrix => Matrix4.LookAt(_cameraPosition, _cameraPosition + CameraForwardDirection, CameraUpDirection);
     /// <summary>
     /// Aspect ration of the view plane
     /// </summary>
     private float AspectRatio => (float) Screen.width / Screen.height;
+
+    private static readonly Vector3 AmbientColor = new Vector3(0.1f);
+    private static readonly Vector3 SpecularColor = new Vector3(0.3f);
+    
     /// <summary>
     /// The projection matrix.
     /// Transforms from camera space to screen space.
@@ -113,6 +84,8 @@ internal class RasterizerApp {
         }
         
         _quad = new ScreenQuad();
+
+        Console.WriteLine("The tea is brewing...A moment of patience please.");
     }
 
     // tick for background surface
@@ -141,15 +114,40 @@ internal class RasterizerApp {
             }
         };
 
-        Vector3 ambientColor = new Vector3(0.1f);
-        Vector3 specularColor = new Vector3(0.3f);
-        
-        SceneGraph graph = new SceneGraph(new List<GraphElement>()
+        const int gridSize = 20;
+        const int halfGrid = gridSize / 2;
+
+        List<GraphElement> teapots = new(gridSize * gridSize);
+
+        Random random = new Random();
+        for (int x = -halfGrid / 2; x < halfGrid; x++) {
+            for (int z = -halfGrid; z < halfGrid; z++) {
+                if(x == 0 && z == 0) continue;
+                
+                    teapots.Add(new GraphElement(
+                    _teapot!,
+                    Matrix4.CreateTranslation(x * 15, 0, z * 15),
+                    _metal!,
+                    new List<GraphElement>(),
+                    new Material() {
+                        Ambient = AmbientColor,
+                        Specular = SpecularColor,
+                        DiffuseTint = new Vector3(
+                            random.NextSingle(),
+                            random.NextSingle(),
+                            random.NextSingle()
+                        ),
+                        Specularity = 30f,
+                    }
+                ));
+            }   
+        }
+
+        SceneGraph sceneGraph = new SceneGraph(new List<GraphElement>()
             {
                 new(
                     _teapot!,
-                    Matrix4.CreateFromAxisAngle(Vector3.UnitY, _a)
-                        * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(-15)),
+                    Matrix4.CreateRotationY(_a) * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(-15)),
                     _metal!,
                     new List<GraphElement>() {
                         new(
@@ -159,42 +157,42 @@ internal class RasterizerApp {
                             _wood!,
                             new List<GraphElement>(),
                             new Material {
-                                Ambient = ambientColor,
-                                Diffuse = Vector3.UnitY,
-                                Specular = specularColor,
+                                Ambient = AmbientColor,
+                                DiffuseTint = Vector3.One,
+                                Specular = SpecularColor,
+                                Specularity = 30f,
                             }
                         ),
                     },
                     new Material{
-                        Ambient = ambientColor,
-                        Diffuse = Vector3.UnitX,
-                        Specular = specularColor,
+                        Ambient = AmbientColor,
+                        DiffuseTint = Vector3.One,
+                        Specular = SpecularColor,
+                        Specularity = 20f,
                     }
                 ),
                 new(
                     _floor!,
                     Matrix4.CreateFromAxisAngle(Vector3.UnitY, -_a)
-                        * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(10)),
+                    * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(10)),
                     _carbon!,
-                    new List<GraphElement>(),
+                    teapots,
                     new Material{
-                        Ambient = ambientColor,
-                        Diffuse = Vector3.UnitY,
-                        Specular = specularColor,
+                        Ambient = AmbientColor,
+                        DiffuseTint = Vector3.UnitY,
                     }
 
                 )
             },
             lights
         );
-        
         if (UseRenderTarget && _target != null && _quad != null) {
             // enable render target
             _target.Bind();
             
             // render scene to render target
             if (_shader != null && _wood != null) {
-                graph.Render(_shader, CameraForwardDirection, ViewMatrix, ProjectionMatrix);
+                sceneGraph.Render(_shader, Frustrum, _camera.Front, _camera.ViewMatrix, ProjectionMatrix);
             }
             
             // render quad
@@ -205,7 +203,7 @@ internal class RasterizerApp {
         }  else {
             // render scene directly to the screen
             if (_shader != null && _wood != null) {
-                graph.Render(_shader, CameraForwardDirection, ViewMatrix, ProjectionMatrix);
+                sceneGraph.Render(_shader, Frustrum, _camera.Front, _camera.ViewMatrix, ProjectionMatrix);
             }
         }
     }
@@ -216,15 +214,18 @@ internal class RasterizerApp {
     /// <param name="e">The event arguments</param>
     public void OnKeyPress(KeyboardKeyEventArgs e) {
         Vector3 moveScaler = new Vector3(1f);
-        _cameraPosition = e.Key switch {
-            Keys.W => _cameraPosition + CameraForwardDirection * moveScaler,
-            Keys.A => _cameraPosition - CameraRightDirection * moveScaler,
-            Keys.S => _cameraPosition - CameraForwardDirection * moveScaler,
-            Keys.D => _cameraPosition + CameraRightDirection * moveScaler,
-            Keys.Space => _cameraPosition + Vector3.UnitY * moveScaler,
-            Keys.LeftShift or Keys.RightShift => _cameraPosition - Vector3.UnitY * moveScaler,
-            _ => _cameraPosition
+        Vector3 position = _camera.Position;
+        Vector3 newPosition = e.Key switch {
+            Keys.W => position + _camera.Front * moveScaler,
+            Keys.A => position - _camera.Right * moveScaler,
+            Keys.S => position - _camera.Front * moveScaler,
+            Keys.D => position + _camera.Right * moveScaler,
+            Keys.Space => position + Vector3.UnitY * moveScaler,
+            Keys.LeftShift or Keys.RightShift or Keys.Z => position - Vector3.UnitY * moveScaler,
+            _ => position
         };
+        
+        _camera.SetPosition(newPosition);
     }
     
     /// <summary>
@@ -234,7 +235,8 @@ internal class RasterizerApp {
     public void OnMouseMove(MouseMoveEventArgs e) {
         const float sensitivity = 4;
 
-        _cameraYaw += e.DeltaX / 360 * sensitivity;
-        _cameraPitch -= e.DeltaY / 360 * sensitivity;
+        float yaw = _camera.Yaw + e.DeltaX / 360 * sensitivity;
+        float pitch = _camera.Pitch - e.DeltaY / 360 * sensitivity;
+        _camera.SetRotation(yaw, pitch);
     }
 }

@@ -21,7 +21,8 @@ public class Shader {
 
     public int LightPositionHandle(int index) => GL.GetUniformLocation(ProgramId, $"lights[{index}].position");
     public readonly int LightCountHandle;
-    
+
+    public readonly int MaterialSpecularityHandle;
     public readonly int MaterialAmbientHandle;
     public readonly int MaterialDiffuseHandle;
     public readonly int MaterialSpecularHandle;
@@ -60,6 +61,7 @@ public class Shader {
         MaterialAmbientHandle = GL.GetUniformLocation(ProgramId, "material.ambient");
         MaterialDiffuseHandle = GL.GetUniformLocation(ProgramId, "material.diffuse");
         MaterialSpecularHandle = GL.GetUniformLocation(ProgramId, "material.specular");
+        MaterialSpecularityHandle = GL.GetUniformLocation(ProgramId, "material.specularity");
     }
 
     // loading shaders

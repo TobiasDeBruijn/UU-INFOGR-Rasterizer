@@ -19,11 +19,17 @@
     - Diffuse lighting,
     - Specular highlights
 - Demonstration scene
+  - Please enjoy the Teapot Party.
 
-### Extra features
+### Extra bonus assignments
 - Multiple lights
   - Supports up to 5 lights (Though this can easily be increased)
+- Frustrum culling
+  - Implemented with some degree of success. Not successful enough though, so it is disabled by default,
+    but can be enable in SceneGraph.cs L56.
 
+### Extra features not mentioned in the assignment
+- Objects can have a diffuse tint. See the disco teapots.
 
 ## Used resources
 - Slides from the INFOGR course
